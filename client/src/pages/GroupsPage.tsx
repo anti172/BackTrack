@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchSession, type Participant } from '../api';
 import { getParticipantId, clearParticipant } from '../auth/participantStorage';
-import { useSignalR } from '../hooks/useSignalR';
+import { useLiveSession } from '../hooks/useLiveSession';
 
 export default function GroupsPage() {
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ export default function GroupsPage() {
     setMyGroup(me?.groupNumber ?? null);
   }, [participantId, navigate]);
 
-  const { on } = useSignalR(loadSession);
+  const { on } = useLiveSession(loadSession, 2000);
 
   useEffect(() => {
     if (!participantId) {
@@ -40,7 +40,8 @@ export default function GroupsPage() {
   useEffect(() => {
     const unsubs = [
       on('GroupsAssigned', () => loadSession()),
-      on('Level2Started', () => navigate('/level2')),
+      on('Level2Started', () => void loadSession()),
+      on('PhaseChanged', () => void loadSession()),
       on('SessionReset', () => {
         clearParticipant();
         navigate('/');

@@ -8,7 +8,7 @@ import {
   type CodeRules,
 } from '../api';
 import { getParticipantId, getParticipantName, clearParticipant } from '../auth/participantStorage';
-import { useSignalR } from '../hooks/useSignalR';
+import { useLiveSession } from '../hooks/useLiveSession';
 
 export default function Level2HackPage() {
   const navigate = useNavigate();
@@ -54,7 +54,7 @@ export default function Level2HackPage() {
     }
   }, [participantId, navigate]);
 
-  const { on } = useSignalR(loadSession);
+  const { on } = useLiveSession(loadSession, 2000);
 
   useEffect(() => {
     if (!participantId) {
@@ -94,7 +94,7 @@ export default function Level2HackPage() {
           setTerminalLines((prev) => [...prev, '> LEVEL 2 CLEARED — Kód feltörve!']);
         }
       }),
-      on('Level2Complete', () => navigate('/level2/done')),
+      on('Level2Complete', () => void loadSession()),
       on('SessionReset', () => {
         clearParticipant();
         navigate('/');

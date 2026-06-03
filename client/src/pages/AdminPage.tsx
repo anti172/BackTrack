@@ -11,7 +11,7 @@ import {
   type SessionPhase,
   type CodeRules,
 } from '../api';
-import { useSignalR } from '../hooks/useSignalR';
+import { useLiveSession } from '../hooks/useLiveSession';
 import RuleConfigPanel from '../components/RuleConfigPanel';
 
 export default function AdminPage() {
@@ -37,7 +37,7 @@ export default function AdminPage() {
     if (session.level2Rules) setLevel2Rules(session.level2Rules);
   }, []);
 
-  const { on } = useSignalR(loadSession);
+  const { on, connected, error: signalRError } = useLiveSession(loadSession, 2000);
 
   useEffect(() => {
     loadSession();
@@ -119,6 +119,10 @@ export default function AdminPage() {
       <div className="status-bar">
         <span>Fázis: <strong style={{ color: 'var(--green)' }}>{phase}</strong></span>
         <span>Résztvevők: {participants.length}</span>
+        <span style={{ color: connected ? 'var(--green)' : 'var(--amber)' }}>
+          {connected ? '● live' : '○ poll'}
+        </span>
+        {signalRError && <span style={{ color: 'var(--red)', fontSize: '0.7rem' }}>SR: poll aktív</span>}
         {phase !== 'lobby' && (
           <span>Feltörve: {hackedCount}/{participants.length}</span>
         )}

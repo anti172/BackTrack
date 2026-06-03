@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchSession, submitGuess, type SessionPhase } from '../api';
 import { getParticipantId, getParticipantName, clearParticipant } from '../auth/participantStorage';
-import { useSignalR } from '../hooks/useSignalR';
+import { useLiveSession } from '../hooks/useLiveSession';
 
 export default function HackPage() {
   const navigate = useNavigate();
@@ -48,7 +48,7 @@ export default function HackPage() {
     }
   }, [participantId, navigate]);
 
-  const { on } = useSignalR(loadSession);
+  const { on } = useLiveSession(loadSession, 2000);
 
   useEffect(() => {
     if (!participantId) {
@@ -59,15 +59,8 @@ export default function HackPage() {
   }, [participantId, navigate, loadSession]);
 
   useEffect(() => {
-    const unsubPhase = on('PhaseChanged', (data: unknown) => {
-      const d = data as { phase: string };
-      if (d.phase === 'hacking') {
-        setPhase('hacking');
-        setTerminalLines((prev) => [
-          ...prev,
-          '> [!] Hackelés elindítva — találd ki a 5 számjegyű kódot!',
-        ]);
-      }
+    const unsubPhase = on('PhaseChanged', () => {
+      void loadSession();
     });
 
     const unsubGuess = on('GuessSubmitted', (data: unknown) => {
@@ -100,7 +93,7 @@ export default function HackPage() {
       }
     });
 
-    const unsubGroups = on('GroupsAssigned', () => navigate('/groups'));
+    const unsubGroups = on('GroupsAssigned', () => void loadSession());
     const unsubReset = on('SessionReset', () => {
       clearParticipant();
       navigate('/');
