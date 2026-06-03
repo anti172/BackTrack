@@ -25,3 +25,4 @@ D:\Didakt\Bszn\Oratart\BackTrack\BackTrack\obj\Debug\net8.0\BackTrack.pdb
 D:\Didakt\Bszn\Oratart\BackTrack\BackTrack\obj\Debug\net8.0\BackTrack.genruntimeconfig.cache
 D:\Didakt\Bszn\Oratart\BackTrack\BackTrack\obj\Debug\net8.0\ref\BackTrack.dll
 D:\Didakt\Bszn\Oratart\BackTrack\BackTrack\bin\Debug\net8.0\appsettings.json
+D:\Didakt\Bszn\Oratart\BackTrack\BackTrack\obj\Debug\net8.0\BackTrack.sourcelink.json
