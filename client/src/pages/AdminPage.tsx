@@ -6,6 +6,7 @@ import {
   startHacking,
   startLevel2,
   resetSession,
+  computeGroupSizes,
   defaultCodeRules,
   type Participant,
   type SessionPhase,
@@ -21,7 +22,6 @@ export default function AdminPage() {
   const [groups, setGroups] = useState<Record<number, string[]>>({});
   const [groupCodes, setGroupCodes] = useState<Record<number, string>>({});
   const [groupCount, setGroupCount] = useState(5);
-  const [groupSize, setGroupSize] = useState(4);
   const [level2Rules, setLevel2Rules] = useState<CodeRules>(defaultCodeRules());
   const [error, setError] = useState('');
   const [loading, setLoading] = useState('');
@@ -33,7 +33,6 @@ export default function AdminPage() {
     setGroups(session.groups);
     setGroupCodes(session.groupCodes);
     if (session.groupCount > 0) setGroupCount(session.groupCount);
-    if (session.groupSize > 0) setGroupSize(session.groupSize);
     if (session.level2Rules) setLevel2Rules(session.level2Rules);
   }, []);
 
@@ -57,15 +56,18 @@ export default function AdminPage() {
     return () => unsubs.forEach((u) => u());
   }, [on, loadSession]);
 
-  const capacity = groupCount * groupSize;
-  const canStart = participants.length >= capacity && groupCount >= 1 && groupSize >= 1;
+  const plannedSizes =
+    participants.length >= groupCount && groupCount >= 1
+      ? computeGroupSizes(participants.length, groupCount)
+      : [];
+  const canStart = participants.length >= groupCount && groupCount >= 1;
   const hackedCount = participants.filter((p) => p.isHacked).length;
 
   async function handleStart() {
     setError('');
     setLoading('start');
     try {
-      await startHacking(groupCount, groupSize);
+      await startHacking(groupCount);
       await loadSession();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Hiba.');
@@ -112,8 +114,8 @@ export default function AdminPage() {
     <div className="card">
       <h2 className="card-title">// admin konzol</h2>
       <p className="card-subtitle">
-        Állítsd be a csoportok számát és a létszámot. Indításkor annyi véletlen
-        5 számjegyű kódot generálunk, és a résztvevőket véletlenszerűen osztjuk szét.
+        Add meg a csoportok számát — a résztvevőket egyenletesen osztjuk szét
+        (pl. 17 fő, 5 csoport → 4+4+3+3+3). Csoportonként egy véletlen 5 számjegyű kód.
       </p>
 
       <div className="status-bar">
@@ -130,37 +132,24 @@ export default function AdminPage() {
 
       {phase === 'lobby' && (
         <div className="admin-config">
-          <div className="config-row">
-            <div className="form-group">
-              <label htmlFor="groupCount">Csoportok száma</label>
-              <input
-                id="groupCount"
-                type="number"
-                min={1}
-                max={50}
-                value={groupCount}
-                onChange={(e) => setGroupCount(Math.max(1, Number(e.target.value)))}
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="groupSize">Személy / csoport</label>
-              <input
-                id="groupSize"
-                type="number"
-                min={1}
-                max={20}
-                value={groupSize}
-                onChange={(e) => setGroupSize(Math.max(1, Number(e.target.value)))}
-              />
-            </div>
+          <div className="form-group">
+            <label htmlFor="groupCount">Csoportok száma</label>
+            <input
+              id="groupCount"
+              type="number"
+              min={1}
+              max={50}
+              value={groupCount}
+              onChange={(e) => setGroupCount(Math.max(1, Number(e.target.value)))}
+            />
           </div>
           <div className={`capacity-info ${canStart ? 'ok' : 'warn'}`}>
-            {groupCount} csoport × {groupSize} fő = <strong>{capacity}</strong> hely
-            {participants.length < capacity
-              ? ` — még ${capacity - participants.length} ember hiányzik`
-              : participants.length > capacity
-                ? ` — ${participants.length - capacity} extra fő véletlenszerű csoportba kerül`
-                : ' — pont elég'}
+            {participants.length} résztvevő → <strong>{groupCount}</strong> csoport
+            {canStart ? (
+              <> — létszám: <strong>{plannedSizes.join(' + ')}</strong> fő</>
+            ) : (
+              <> — legalább {groupCount} ember kell (csoportonként min. 1)</>
+            )}
           </div>
         </div>
       )}
@@ -190,7 +179,7 @@ export default function AdminPage() {
             return (
               <div key={num} className="group-card">
                 <div className="group-title">
-                  Csoport {Number(num) + 1}
+                  Csoport {Number(num) + 1} ({members.length} fő)
                   <span className="group-code">kód: {groupCodes[Number(num)] ?? '?????'}</span>
                 </div>
                 {members.map((m) => (
@@ -218,7 +207,7 @@ export default function AdminPage() {
           >
             {loading === 'start'
               ? 'Indítás...'
-              : `Kódok generálása és szétosztás (${groupCount}×${groupSize}) →`}
+              : `Kódok generálása (${groupCount} csoport, ${participants.length} fő) →`}
           </button>
         )}
 

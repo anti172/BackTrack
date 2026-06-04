@@ -16,14 +16,13 @@ public class SessionState
     public Dictionary<int, List<string>> Groups { get; set; } = [];
     public Dictionary<int, string> GroupCodes { get; set; } = [];
     public int GroupCount { get; set; }
-    public int GroupSize { get; set; }
+    public List<int> GroupSizes { get; set; } = [];
     public CodeRules Level2Rules { get; set; } = new();
 }
 
 public class StartRequest
 {
     public int GroupCount { get; set; }
-    public int GroupSize { get; set; }
 }
 
 public class ParticipantView

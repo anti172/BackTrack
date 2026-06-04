@@ -49,7 +49,7 @@ app.MapGet("/api/session", (SessionStore store, HttpContext ctx) =>
     {
         phase = state.Phase.ToString().ToLower(),
         groupCount = state.GroupCount,
-        groupSize = state.GroupSize,
+        groupSizes = state.GroupSizes,
         groupCodes = isAdmin ? state.GroupCodes : null,
         level2Rules = state.Level2Rules,
         participants = state.Participants.Select(p => ToView(p)),
@@ -75,7 +75,7 @@ app.MapPost("/api/admin/start", async (StartRequest req, SessionStore store, IHu
     if (!AdminAuth.IsValidToken(ctx.Request.Headers.Authorization))
         return Results.Unauthorized();
 
-    var (success, error) = store.StartHacking(req.GroupCount, req.GroupSize);
+    var (success, error) = store.StartHacking(req.GroupCount);
     if (!success)
         return Results.BadRequest(new { error });
 
@@ -84,7 +84,7 @@ app.MapPost("/api/admin/start", async (StartRequest req, SessionStore store, IHu
     {
         phase = "hacking",
         groupCount = state.GroupCount,
-        groupSize = state.GroupSize,
+        groupSizes = state.GroupSizes,
         groupCodes = state.GroupCodes,
         participants = state.Participants.Select(p => ToView(p)),
         groups = state.Groups
@@ -94,7 +94,7 @@ app.MapPost("/api/admin/start", async (StartRequest req, SessionStore store, IHu
     {
         phase = "hacking",
         groupCount = state.GroupCount,
-        groupSize = state.GroupSize,
+        groupSizes = state.GroupSizes,
         groupCodes = state.GroupCodes,
         groups = state.Groups
     });

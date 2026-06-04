@@ -37,11 +37,19 @@ export interface Participant {
 export interface Session {
   phase: SessionPhase;
   groupCount: number;
-  groupSize: number;
+  groupSizes: number[];
   groupCodes: Record<number, string>;
   level2Rules: CodeRules;
   participants: Participant[];
   groups: Record<number, string[]>;
+}
+
+/** Egyenletes csoportosítás: 17 fő, 5 csoport → [4,4,3,3,3] */
+export function computeGroupSizes(total: number, groups: number): number[] {
+  if (groups < 1 || total < 1) return [];
+  const base = Math.floor(total / groups);
+  const remainder = total % groups;
+  return Array.from({ length: groups }, (_, i) => base + (i < remainder ? 1 : 0));
 }
 
 export const defaultCodeRules = (): CodeRules => ({
@@ -85,7 +93,7 @@ export async function fetchSession(): Promise<Session> {
   return {
     phase: data.phase,
     groupCount: data.groupCount ?? 0,
-    groupSize: data.groupSize ?? 0,
+    groupSizes: (data.groupSizes as number[]) ?? [],
     groupCodes: data.groupCodes ?? {},
     level2Rules: mapRules(data.level2Rules),
     participants: data.participants.map(mapParticipant),
@@ -110,11 +118,11 @@ export async function join(name: string): Promise<{ participantId: string; parti
   };
 }
 
-export async function startHacking(groupCount: number, groupSize: number): Promise<void> {
+export async function startHacking(groupCount: number): Promise<void> {
   const res = await apiFetch('/api/admin/start', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...adminHeaders() },
-    body: JSON.stringify({ groupCount, groupSize }),
+    body: JSON.stringify({ groupCount }),
   });
   if (!res.ok) {
     const err = await res.json();

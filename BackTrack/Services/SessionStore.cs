@@ -32,22 +32,22 @@ public class SessionStore
         }
     }
 
-    public (bool Success, string? Error) StartHacking(int groupCount, int groupSize)
+    public (bool Success, string? Error) StartHacking(int groupCount)
     {
         lock (_lock)
         {
             if (_state.Phase != SessionPhase.Lobby || _state.Participants.Count == 0)
                 return (false, "Nem indítható: nincs résztvevő, vagy már fut a játék.");
 
-            if (groupCount < 1 || groupSize < 1)
-                return (false, "A csoportok száma és a létszám legalább 1 legyen.");
+            if (groupCount < 1)
+                return (false, "Legalább 1 csoport kell.");
 
-            var required = groupCount * groupSize;
-            if (_state.Participants.Count < required)
-                return (false, $"Legalább {required} résztvevő kell ({groupCount} csoport × {groupSize} fő). Jelenleg: {_state.Participants.Count}.");
+            var n = _state.Participants.Count;
+            if (n < groupCount)
+                return (false, $"Legalább {groupCount} résztvevő kell ({groupCount} csoport). Jelenleg: {n}.");
 
             _state.GroupCount = groupCount;
-            _state.GroupSize = groupSize;
+            _state.GroupSizes = GroupDistributor.ComputeSizes(n, groupCount).ToList();
             _state.GroupCodes = new Dictionary<int, string>();
             _state.Groups = new Dictionary<int, List<string>>();
 
@@ -59,20 +59,20 @@ public class SessionStore
             }
 
             var shuffled = _state.Participants.OrderBy(_ => Random.Shared.Next()).ToList();
+            var index = 0;
 
-            for (var i = 0; i < shuffled.Count; i++)
+            for (var g = 0; g < groupCount; g++)
             {
-                var groupIndex = i < required
-                    ? i / groupSize
-                    : Random.Shared.Next(groupCount);
-
-                var p = shuffled[i];
-                p.GroupNumber = groupIndex;
-                p.SecretCode = _state.GroupCodes[groupIndex];
-                p.LockedPositions = new bool[5];
-                p.GuessCount = 0;
-                p.IsHacked = false;
-                _state.Groups[groupIndex].Add(p.Id);
+                for (var j = 0; j < _state.GroupSizes[g]; j++)
+                {
+                    var p = shuffled[index++];
+                    p.GroupNumber = g;
+                    p.SecretCode = _state.GroupCodes[g];
+                    p.LockedPositions = new bool[5];
+                    p.GuessCount = 0;
+                    p.IsHacked = false;
+                    _state.Groups[g].Add(p.Id);
+                }
             }
 
             _state.Phase = SessionPhase.Hacking;
@@ -240,7 +240,7 @@ public class SessionStore
         {
             Phase = state.Phase,
             GroupCount = state.GroupCount,
-            GroupSize = state.GroupSize,
+            GroupSizes = state.GroupSizes.ToList(),
             Level2Rules = CloneRules(state.Level2Rules),
             GroupCodes = state.GroupCodes.ToDictionary(g => g.Key, g => g.Value),
             Participants = state.Participants.Select(p => new Participant
